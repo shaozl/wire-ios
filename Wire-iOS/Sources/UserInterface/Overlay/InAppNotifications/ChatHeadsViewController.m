@@ -21,7 +21,7 @@
 
 #import "WireSyncEngine+iOS.h"
 
-#import "ChatHeadView.h"
+//#import "ChatHeadView.h"
 #import "PassthroughTouchesView.h"
 
 // helpers
@@ -30,6 +30,7 @@
 #import "Constants.h"
 @import PureLayout;
 #import "UIView+WR_ExtendedBlockAnimations.h"
+#import "Wire-Swift.h"
 
 
 typedef NS_ENUM(NSUInteger, ChatHeadPresentationState) {
@@ -104,7 +105,7 @@ typedef NS_ENUM(NSUInteger, ChatHeadPresentationState) {
     }
 
     ChatHeadView *chatHeadView = [[ChatHeadView alloc] initWithMessage:message];
-    chatHeadView.messageInCurrentConversation = [self.delegate chatHeadsViewController:self isMessageInCurrentConversation:message];
+    chatHeadView.isMessageInCurrentConversation = [self.delegate chatHeadsViewController:self isMessageInCurrentConversation:message];
     chatHeadView.translatesAutoresizingMaskIntoConstraints = NO;
     @weakify(self);
     chatHeadView.onSelect = ^(id<ZMConversationMessage>message) {
