@@ -315,9 +315,9 @@
 			<real>0.64</real>
 		</array>
 		<key>corner_radius</key>
-		<integer>18</integer>
-		<key>box_tile_to_content_gap</key>
 		<integer>6</integer>
+		<key>box_tile_to_content_gap</key>
+		<integer>10</integer>
 		<key>top_label_inset</key>
 		<integer>4</integer>
 		<key>bottom_label_inset</key>

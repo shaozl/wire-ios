@@ -17,20 +17,25 @@
 //
 
 import UIKit
+import Cartography
 import PureLayout
 
 class ChatHeadView: UIView {
 
     private var userImageView: ContrastUserImageView!
-    private var nameLabel: UILabel!
-    private var messageLabel: UILabel!
-    private var constraintsCreated: Bool = false
-    private var nameLabelLeftConstraint = NSLayoutConstraint()
-    private var messageLabelLeftConstraint = NSLayoutConstraint()
-    private var nameLabelRightConstraint = NSLayoutConstraint()
-    private var messageLabelRightConstraint = NSLayoutConstraint()
+    private var titleLabel: UILabel!
+    private var subtitleLabel: UILabel!
+    private var labelContainer: UIView!
+    private var labelContainerLeftConstraint: NSLayoutConstraint!
+    private var labelContainerRightConstraint: NSLayoutConstraint!
     
-    public let message: ZMConversationMessage
+    private let isActiveAccount: Bool
+    private let isOneToOneConversation: Bool
+    
+    private let message: ZMConversationMessage
+    private let conversationName: String
+    private let senderName: String
+    private let teamName: String?
     
     public var onSelect: ((ZMConversationMessage) -> Void)?
     
@@ -38,15 +43,9 @@ class ChatHeadView: UIView {
         didSet {
             let inset = imageToTextInset
             let tileToContentGap = cgFloat("box_tile_to_content_gap")
-            nameLabelLeftConstraint.constant = inset + tileToContentGap
-            messageLabelLeftConstraint.constant = inset + tileToContentGap
-            nameLabelRightConstraint.constant = -(cgFloat("corner_radius")) + inset
-            messageLabelRightConstraint.constant = -(cgFloat("corner_radius")) + inset
+            labelContainerLeftConstraint.constant = inset + tileToContentGap
+            labelContainerRightConstraint.constant = -(cgFloat("corner_radius")) + inset
         }
-    }
-    
-    public var isMessageInCurrentConversation: Bool = false {
-        didSet { nameLabel.text = senderText() }
     }
     
     override var intrinsicContentSize: CGSize {
@@ -57,8 +56,27 @@ class ChatHeadView: UIView {
         return WAZUIMagic.cgFloat(forIdentifier: "notifications.\($0)")
     }
     
-    init(message: ZMConversationMessage) {
+    init?(notification: UILocalNotification) {
+        
+        let isSelfAccount: (Account) -> Bool = { return $0.userIdentifier == notification.zm_selfUserUUID }
+        
+        guard
+            let accountManager = SessionManager.shared?.accountManager,
+            let account = accountManager.accounts.first(where: isSelfAccount),
+            let session = SessionManager.shared?.backgroundUserSessions[account],
+            let conversation = notification.conversation(in: session.managedObjectContext),
+            let message = notification.message(in: conversation, in: session.managedObjectContext),
+            let sender = message.sender
+            else {
+                return nil
+        }
+        
         self.message = message
+        self.conversationName = conversation.displayName
+        self.senderName = sender.displayName
+        self.teamName = account.teamName
+        self.isActiveAccount = account == accountManager.selectedAccount
+        self.isOneToOneConversation = conversation.conversationType == .oneOnOne
         super.init(frame: .zero)
         setup()
     }
@@ -68,31 +86,32 @@ class ChatHeadView: UIView {
     }
     
     private func setup() {
-        backgroundColor = message.sender!.accentColor
-        layer.cornerRadius = WAZUIMagic.cgFloat(forIdentifier: "notifications.corner_radius")
+        backgroundColor = .white
+        layer.cornerRadius = cgFloat("corner_radius")
         
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTapInAppNotification(_:)))
         addGestureRecognizer(tap)
         
-        nameLabel = UILabel()
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(nameLabel)
-        nameLabel.backgroundColor = .clear
-        nameLabel.isUserInteractionEnabled = false
-        nameLabel.text = senderText()
-        nameLabel.font = UIFont(magicIdentifier: "notifications.user_name_font")
-        nameLabel.textColor = UIColor(magicIdentifier: "notifications.author_text_color")
-        nameLabel.lineBreakMode = .byTruncatingTail
+        titleLabel = UILabel()
+        subtitleLabel = UILabel()
+        labelContainer = UIView()
         
-        messageLabel = UILabel()
-        messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(messageLabel)
-        messageLabel.backgroundColor = .clear
-        messageLabel.isUserInteractionEnabled = false
-        messageLabel.text = messageText()
-        messageLabel.font = messageFont()
-        messageLabel.textColor = UIColor(magicIdentifier: "notifications.text_color")
-        messageLabel.lineBreakMode = .byTruncatingTail
+        [titleLabel, subtitleLabel].forEach {
+            labelContainer.addSubview($0!)
+            $0!.backgroundColor = .clear
+            $0!.isUserInteractionEnabled = false
+            $0!.translatesAutoresizingMaskIntoConstraints = false
+        }
+        
+        titleLabel.text = titleText()
+        titleLabel.font = UIFont(magicIdentifier: "notifications.user_name_font")
+        titleLabel.textColor = UIColor(magicIdentifier: "notifications.author_text_color")
+        titleLabel.lineBreakMode = .byTruncatingTail
+        
+        subtitleLabel.text = subtitleText()
+        subtitleLabel.font = messageFont()
+        subtitleLabel.textColor = UIColor(magicIdentifier: "notifications.text_color")
+        subtitleLabel.lineBreakMode = .byTruncatingTail
         
         userImageView = ContrastUserImageView(magicPrefix: "notifications")
         userImageView.userSession = ZMUserSession.shared()
@@ -102,24 +121,21 @@ class ChatHeadView: UIView {
         userImageView.user = message.sender
         userImageView.accessibilityIdentifier = "ChatheadAvatarImage"
         
-        setNeedsUpdateConstraints()
+        createConstraints()
     }
     
-    private func senderText() -> String {
+    private func titleText() -> String {
         
-        guard let sender = message.sender, let conversation = message.conversation else {
-            return ""
-        }
-        
-        let nameString = (sender.displayName as NSString).uppercasedWithCurrentLocale
-        
-        if conversation.conversationType == .oneOnOne {
-            return nameString
-        } else if isMessageInCurrentConversation {
-            return String(format: "%s %s", "notifications.this_conversation".localized, nameString)
+        if let teamName = teamName, !isActiveAccount {
+            return isOneToOneConversation ? "in \(teamName)" : "\(conversationName) in \(teamName)"
         } else {
-            return String(format: "%s %s %s", "notifications.in_conversation".localized, nameString, (message.conversation!.displayName as NSString).uppercasedWithCurrentLocale)
+            return conversationName
         }
+    }
+    
+    private func subtitleText() -> String {
+        let content = messageText()
+        return (isActiveAccount && isOneToOneConversation) ? content : "\(senderName): \(content)"
     }
     
     private func messageText() -> String {
@@ -158,34 +174,38 @@ class ChatHeadView: UIView {
         }
     }
     
-    override func updateConstraints() {
-        if !constraintsCreated {
-            constraintsCreated = true
+    func createConstraints() {
+
+        let tileDiameter = cgFloat("tile_diameter")
+        let padding: CGFloat = 10
+        let tileToContentGap = cgFloat("box_tile_to_content_gap")
+        let cornerRadius = cgFloat("corner_radius")
+        
+        constrain(labelContainer, titleLabel, subtitleLabel) { container, titleLabel, subtitleLabel in
+            titleLabel.leading == container.leading
+            titleLabel.top == container.top
+            titleLabel.trailing == container.trailing
+            titleLabel.bottom == container.centerY
             
-            let tileDiameter = cgFloat("tile_diameter")
-            let tileToContentGap = cgFloat("box_tile_to_content_gap")
-            let tileLeftMargin = cgFloat("tile_left_margin")
-            
-            let topLabelInset = cgFloat("top_label_inset")
-            let bottomLabelInset = cgFloat("bottom_label_inset")
-            let ephemeralBottomLabelInset = cgFloat("ephemeral_bottom_label_inset")
-            
-            userImageView.autoSetDimension(.height, toSize: tileDiameter)
-            userImageView.autoAlignAxis(toSuperviewAxis: .horizontal)
-            userImageView.autoPinEdge(toSuperviewEdge: .leading, withInset: tileLeftMargin)
-            userImageView.autoConstrainAttribute(.width, to: .height, of: userImageView)
-            
-            nameLabel.autoPinEdge(toSuperviewEdge: .top, withInset: topLabelInset)
-            nameLabelLeftConstraint = nameLabel.autoPinEdge(.left, to: .right, of: userImageView, withOffset: tileToContentGap + imageToTextInset)
-            nameLabelRightConstraint = nameLabel.autoPinEdge(toSuperviewEdge: .right, withInset: WAZUIMagic.cgFloat(forIdentifier: "notifications.corner_radius") - imageToTextInset)
-            
-            messageLabelLeftConstraint = messageLabel.autoPinEdge(.left, to: .right, of: userImageView, withOffset: tileToContentGap + imageToTextInset)
-            messageLabelRightConstraint = messageLabel.autoPinEdge(toSuperviewEdge: .right, withInset: cgFloat("corner_radius") - imageToTextInset)
-            
-            let bottomInset = message.isEphemeral ? ephemeralBottomLabelInset : bottomLabelInset
-            messageLabel.autoPinEdge(toSuperviewEdge: .bottom, withInset: bottomInset)
+            subtitleLabel.leading == container.leading
+            subtitleLabel.top == container.centerY
+            subtitleLabel.trailing == container.trailing
+            subtitleLabel.bottom == container.bottom
         }
         
-        super.updateConstraints()
+        constrain(self, userImageView, labelContainer) { selfView, imageView, labelContainer in
+            
+            imageView.height == tileDiameter
+            imageView.width == imageView.height
+            imageView.leading == selfView.leading + padding
+            imageView.centerY == selfView.centerY
+            
+            selfView.height == imageView.height + 2 * padding
+            
+            labelContainerLeftConstraint = (labelContainer.leading == imageView.trailing + imageToTextInset + tileToContentGap)
+            labelContainerRightConstraint = (labelContainer.trailing == selfView.trailing + imageToTextInset - cornerRadius)
+            labelContainer.height == selfView.height
+            labelContainer.centerY == selfView.centerY
+        }
     }
 }
