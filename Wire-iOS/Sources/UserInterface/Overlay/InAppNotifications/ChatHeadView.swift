@@ -105,13 +105,15 @@ class ChatHeadView: UIView {
         }
         
         titleLabel.text = titleText()
-        titleLabel.font = UIFont(magicIdentifier: "notifications.user_name_font")
-        titleLabel.textColor = UIColor(magicIdentifier: "notifications.author_text_color")
+        titleLabel.font = UIFont(magicIdentifier: "notifications.title_label_font")
+        // titleLabel.textColor = UIColor(magicIdentifier: "notifications.author_text_color")
+        titleLabel.textColor = .black
         titleLabel.lineBreakMode = .byTruncatingTail
         
         subtitleLabel.text = subtitleText()
         subtitleLabel.font = messageFont()
-        subtitleLabel.textColor = UIColor(magicIdentifier: "notifications.text_color")
+        // subtitleLabel.textColor = UIColor(magicIdentifier: "notifications.text_color")
+        subtitleLabel.textColor = .black
         subtitleLabel.lineBreakMode = .byTruncatingTail
         
         userImageView = ContrastUserImageView(magicPrefix: "notifications")
@@ -170,6 +172,7 @@ class ChatHeadView: UIView {
     }
     
     @objc private func didTapInAppNotification(_ gestureRecognizer: UITapGestureRecognizer) {
+        removeFromSuperview()
         if let onSelect = onSelect, gestureRecognizer.state == .recognized {
             onSelect(message)
         }
