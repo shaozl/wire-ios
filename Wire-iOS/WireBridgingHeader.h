@@ -65,6 +65,7 @@
 #import "CameraPreviewView.h"
 #import "VoiceChannelCollectionViewLayout.h"
 #import "ContrastUserImageView.h"
+#import "PassthroughTouchesView.h"
 
 // View Controllers
 #import "ZClientViewController.h"
