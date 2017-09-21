@@ -95,6 +95,7 @@ class ChatHeadView: UIView {
         titleLabel = UILabel()
         subtitleLabel = UILabel()
         labelContainer = UIView()
+        addSubview(labelContainer)
         
         [titleLabel, subtitleLabel].forEach {
             labelContainer.addSubview($0!)
