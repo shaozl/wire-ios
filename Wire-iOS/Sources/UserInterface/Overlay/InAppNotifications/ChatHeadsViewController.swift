@@ -23,13 +23,13 @@ class ChatHeadsViewController: UIViewController {
     
     weak var delegate: ChatHeadsViewControllerDelegate?
     
-    private var chatHeadView: ChatHeadView?
-    private var chatHeadViewLeftMarginConstraint: NSLayoutConstraint?
-    private var chatHeadViewRightMarginConstraint: NSLayoutConstraint?
+    fileprivate var chatHeadView: ChatHeadView?
+    fileprivate var chatHeadViewLeftMarginConstraint: NSLayoutConstraint?
+    fileprivate var chatHeadViewRightMarginConstraint: NSLayoutConstraint?
     private var panGestureRecognizer: UIPanGestureRecognizer!
-    private var chatHeadState: ChatHeadPresentationState = .hidden
+    fileprivate var chatHeadState: ChatHeadPresentationState = .hidden
     
-    private let magic: (String) -> CGFloat = {
+    fileprivate let magic: (String) -> CGFloat = {
         return WAZUIMagic.cgFloat(forIdentifier: "notifications.\($0)")
     }
     
@@ -73,14 +73,14 @@ class ChatHeadsViewController: UIViewController {
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(hideChatHeadView), object: nil)
         perform(#selector(hideChatHeadView), with: nil, afterDelay: Double(magic("single_user_duration")))
         
+        chatHeadView.alpha = 0
         revealChatHeadFromCurrentState()
     }
     
     // MARK: - Private Helpers
     
-    private func revealChatHeadFromCurrentState() {
+    fileprivate func revealChatHeadFromCurrentState() {
         
-        chatHeadView?.alpha = 0
         chatHeadView?.imageToTextInset = -(magic("animation_inset_text"))
         
         // slide in chat head content
@@ -145,6 +145,45 @@ class ChatHeadsViewController: UIViewController {
 extension ChatHeadsViewController {
     
     @objc fileprivate func onPanChatHead(_ pan: UIPanGestureRecognizer) {
-        // TODO
+        
+        let offset = pan.translation(in: view)
+        
+        switch pan.state {
+        case .began:
+            chatHeadState = .dragging
+        
+        case .changed:
+            // if pan left, move chathead with finger, else apply pan resistance
+            let viewOffsetX = offset.x < 0 ? offset.x : (1.0 - (1.0/((offset.x * 0.15 / view.bounds.width) + 1.0))) * view.bounds.width
+            chatHeadViewLeftMarginConstraint?.constant = viewOffsetX + 16
+            chatHeadViewRightMarginConstraint?.constant = viewOffsetX - 16
+            
+        case .ended, .failed, .cancelled:
+            guard offset.x < 0 && fabs(offset.x) > magic("gesture_threshold") else {
+                revealChatHeadFromCurrentState()
+                break
+            }
+
+            chatHeadViewLeftMarginConstraint?.constant = -view.bounds.width
+            chatHeadViewRightMarginConstraint?.constant = -view.bounds.width
+            
+            chatHeadState = .hiding
+            
+            // calculate time from formula dx = t * v + d0
+            let velocityVector = pan.velocity(in: view)
+            var time = Double((view.bounds.width - fabs(offset.x)) / fabs(velocityVector.x))
+            
+            // min/max animation duration
+            if time < 0.05 { time = 0.05 }
+            else if time > 0.2 { time = 0.2 }
+            
+            UIView.wr_animate(easing: RBBEasingFunctionEaseInQuad, duration: time, animations: view.layoutIfNeeded) { _ in
+                self.chatHeadView?.removeFromSuperview()
+                self.chatHeadState = .hidden
+            }
+            
+        default:
+            break
+        }
     }
 }
