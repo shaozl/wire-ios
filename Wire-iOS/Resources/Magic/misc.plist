@@ -264,12 +264,12 @@
 		<integer>14</integer>
 		<key>inset_right</key>
 		<integer>14</integer>
-		<key>user_name_font</key>
+		<key>title_label_font</key>
 		<dict>
 			<key>font</key>
-			<string>System-Light-Semibold</string>
+			<string>System-Medium</string>
 			<key>size</key>
-			<integer>11</integer>
+			<integer>14</integer>
 		</dict>
 		<key>stroke_width</key>
 		<integer>0</integer>
@@ -307,12 +307,12 @@
 			<integer>1</integer>
 			<integer>1</integer>
 		</array>
-		<key>author_text_color</key>
+		<key>title_text_color</key>
 		<array>
+			<real>51</real>
+			<real>55</real>
+			<real>58</real>
 			<integer>1</integer>
-			<integer>1</integer>
-			<integer>1</integer>
-			<real>0.64</real>
 		</array>
 		<key>corner_radius</key>
 		<integer>6</integer>
