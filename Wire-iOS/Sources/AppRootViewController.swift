@@ -110,6 +110,7 @@ class AppRootViewController : UIViewController {
             blacklistDownloadInterval: Settings.shared().blacklistDownloadInterval)
         { sessionManager in
             self.sessionManager = sessionManager
+            self.sessionManager?.localMessageNotificationResponder = self
             sessionManager.updateCallNotificationStyleFromSettings()
         }
     }
@@ -345,4 +346,14 @@ extension AppRootViewController : AppStateControllerDelegate {
         enqueueTransition(to: appState)
     }
     
+}
+
+extension AppRootViewController : LocalMessageNotificationResponder {
+    
+    func processLocalMessage(_ notification: UILocalNotification, forSession session: ZMUserSession) {
+        DispatchQueue.main.async {
+            (self.overlayWindow.rootViewController as! NotificationWindowRootViewController).show(notification)
+        }
+        
+    }
 }
