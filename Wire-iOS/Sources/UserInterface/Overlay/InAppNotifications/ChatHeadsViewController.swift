@@ -9,19 +9,11 @@
 import UIKit
 import Cartography
 
-protocol ChatHeadsViewControllerDelegate: class {
-    func chatHeadsViewController(_ controller: ChatHeadsViewController, shouldDisplay message: ZMConversationMessage) -> Bool
-    func chatHeadsViewController(_ controller: ChatHeadsViewController, isMessageInCurrentConversation message: ZMConversationMessage) -> Bool
-    func chatHeadsViewController(_ controller: ChatHeadsViewController, didSelect message: ZMConversationMessage)
-}
-
 class ChatHeadsViewController: UIViewController {
 
     enum ChatHeadPresentationState {
         case `default`, hidden, showing, visible, dragging, hiding, last
     }
-    
-    weak var delegate: ChatHeadsViewControllerDelegate?
     
     fileprivate var chatHeadView: ChatHeadView?
     fileprivate var chatHeadViewLeftMarginConstraint: NSLayoutConstraint?
@@ -41,11 +33,8 @@ class ChatHeadsViewController: UIViewController {
     // MARK: - Public Interface
     
     public func tryToDisplayNotification(_ note: UILocalNotification) {
-        
-        guard delegate?.chatHeadsViewControllerShouldDisplayNotification(self) ?? false else {
-            return
-        }
-        
+
+    
         if chatHeadState != .hidden {
             // TODO: logic for notification already visible
             return
