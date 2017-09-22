@@ -9,6 +9,17 @@
 import UIKit
 import Cartography
 
+public extension UIViewController {
+    
+    /// Determines if this view controller allows local in app notifications
+    /// (chat heads) to appear. The default is true.
+    ///
+    @objc(shouldDisplayNotificationForMessage:isActiveAccount:)
+    public func shouldDisplayNotification(for message: ZMConversationMessage, isActiveAccount: Bool) -> Bool {
+        return true
+    }
+}
+
 class ChatHeadsViewController: UIViewController {
 
     enum ChatHeadPresentationState {
@@ -97,13 +108,7 @@ class ChatHeadsViewController: UIViewController {
         }
         
         let clientVC = ZClientViewController.shared()!
-        
-        // if conversation list is visible and active account
-        // TODO: confirm: left view may be revealed, even if it's covered by another vc...
-        if isActiveAccount && clientVC.splitViewController.isLeftViewControllerRevealed {
-            return false
-        }
-        
+
         // if current conversation contains message & is visible
         if clientVC.currentConversation === message.conversation && clientVC.isConversationViewVisible {
             return false
@@ -112,8 +117,8 @@ class ChatHeadsViewController: UIViewController {
         if AppDelegate.shared().notificationWindowController?.voiceChannelController.voiceChannelIsActive ?? false {
             return false;
         }
-        
-        return true;
+
+        return clientVC.splitViewController.shouldDisplayNotification(for: message, isActiveAccount: isActiveAccount)
     }
     
     fileprivate func revealChatHeadFromCurrentState() {
