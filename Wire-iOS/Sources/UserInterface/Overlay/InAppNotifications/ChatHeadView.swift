@@ -46,6 +46,10 @@ class ChatHeadView: UIView {
         return WAZUIMagic.cgFloat(forIdentifier: "notifications.\($0)")
     }
     
+    private let magicFont: (String) -> UIFont = {
+        return UIFont(magicIdentifier: "notifications.\($0)")
+    }
+    
     init?(notification: UILocalNotification) {
         
         let isSelfAccount: (Account) -> Bool = { return $0.userIdentifier == notification.zm_selfUserUUID }
@@ -80,6 +84,15 @@ class ChatHeadView: UIView {
     private func setup() {
         backgroundColor = .white
         layer.cornerRadius = magicFloat("corner_radius")
+        layer.borderWidth = 0.5
+        layer.borderColor = UIColor(white: 230/255.0, alpha: 1).cgColor
+        
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.12
+        layer.shadowRadius = 8.0
+        layer.shadowOffset = CGSize(width: 0, height: 8)
+        layer.masksToBounds = false
+        
         createLabels()
         createImageView()
         createConstraints()
@@ -100,14 +113,13 @@ class ChatHeadView: UIView {
             $0!.isUserInteractionEnabled = false
         }
         
-        titleLabel.text = titleText()
-        titleLabel.font = UIFont(magicIdentifier: "notifications.title_label_font_medium")
-        titleLabel.textColor = .black
+        titleLabel.attributedText = titleText()
+        titleLabel.textColor = UIColor(red: 51/255.0, green: 55/255.0, blue: 58/255.0, alpha: 1)
         titleLabel.lineBreakMode = .byTruncatingTail
         
         subtitleLabel.text = subtitleText()
         subtitleLabel.font = messageFont()
-        subtitleLabel.textColor = .black
+        subtitleLabel.textColor = UIColor(white: 153/255.0, alpha: 1)
         subtitleLabel.lineBreakMode = .byTruncatingTail
     }
     
@@ -124,8 +136,7 @@ class ChatHeadView: UIView {
     private func createConstraints() {
         
         let imageDiameter = magicFloat("image_diameter")
-        let imagePadding = magicFloat("image_padding")
-        let cornerRadius = magicFloat("corner_radius")
+        let padding = magicFloat("content_padding")
         
         constrain(labelContainer, titleLabel, subtitleLabel) { container, titleLabel, subtitleLabel in
             titleLabel.leading == container.leading
@@ -140,11 +151,11 @@ class ChatHeadView: UIView {
         constrain(self, userImageView, labelContainer) { selfView, imageView, labelContainer in
             imageView.height == imageDiameter
             imageView.width == imageView.height
-            imageView.leading == selfView.leading + imagePadding
+            imageView.leading == selfView.leading + padding
             imageView.centerY == selfView.centerY
             
-            labelContainer.leading == imageView.trailing + imagePadding
-            labelContainer.trailing == selfView.trailing - cornerRadius
+            labelContainer.leading == imageView.trailing + padding
+            labelContainer.trailing == selfView.trailing - padding
             labelContainer.height == selfView.height
             labelContainer.centerY == selfView.centerY
         }
@@ -152,12 +163,23 @@ class ChatHeadView: UIView {
     
     // MARK: - Private Helpers
     
-    private func titleText() -> String {
-        
+    private func titleText() -> NSAttributedString {
+
+        let regularFont: [String: AnyObject] = [NSFontAttributeName: magicFont("title_label_font_regular")]
+        let mediumFont: [String: AnyObject] = [NSFontAttributeName: magicFont("title_label_font_medium")]
+
         if let teamName = teamName, !isActiveAccount {
-            return isOneToOneConversation ? "in \(teamName)" : "\(conversationName) in \(teamName)"
+            let result = NSMutableAttributedString(string: "in ", attributes: regularFont)
+            result.append(NSAttributedString(string: teamName, attributes: mediumFont))
+            
+            if !isOneToOneConversation {
+                result.insert(NSAttributedString(string: conversationName + " ", attributes: mediumFont), at: 0)
+            }
+            
+            return result
+
         } else {
-            return conversationName
+            return NSAttributedString(string: conversationName, attributes: mediumFont)
         }
     }
     
@@ -189,7 +211,7 @@ class ChatHeadView: UIView {
     }
 
     private func messageFont() -> UIFont {
-        let font = UIFont(magicIdentifier: "style.text.small.font_spec_light")!
+        let font = magicFont("subtitle_label_font")
         if message.isEphemeral {
             return UIFont(name: "RedactedScript-Regular", size: font.pointSize)!
         }

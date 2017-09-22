@@ -268,7 +268,7 @@
 		<integer>6</integer>
 		<key>image_diameter</key>
 		<real>28</real>
-		<key>image_padding</key>
+		<key>content_padding</key>
 		<integer>10</integer>
 		<key>title_label_font_regular</key>
 		<dict>
@@ -283,6 +283,13 @@
 			<string>System-Medium</string>
 			<key>size</key>
 			<integer>14</integer>
+		</dict>
+		<key>subtitle_label_font</key>
+		<dict>
+			<key>font</key>
+			<string>System-Regular</string>
+			<key>size</key>
+			<string>12</string>
 		</dict>
 		<key>dismiss_delay_duration</key>
 		<integer>5</integer>
