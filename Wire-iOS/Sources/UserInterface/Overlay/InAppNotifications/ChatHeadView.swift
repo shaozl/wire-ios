@@ -38,7 +38,7 @@ class ChatHeadView: UIView {
     public var onSelect: ((ZMConversationMessage) -> Void)?
     
     override var intrinsicContentSize: CGSize {
-        let height = magicFloat("image_diameter") + 2 * magicFloat("image_padding")
+        let height = magicFloat("image_diameter") + 2 * magicFloat("content_padding")
         return CGSize(width: UIViewNoIntrinsicMetric, height: height)
     }
 
