@@ -34,49 +34,87 @@ class ChatHeadsViewController: UIViewController {
     
     public func tryToDisplayNotification(_ note: UILocalNotification) {
 
-    
+        let isSelfAccount: (Account) -> Bool = { return $0.userIdentifier == note.zm_selfUserUUID }
+        
+        guard
+            let accountManager = SessionManager.shared?.accountManager,
+            let account = accountManager.accounts.first(where: isSelfAccount),
+            let session = SessionManager.shared?.backgroundUserSessions[account],
+            let conversation = note.conversation(in: session.managedObjectContext),
+            let message = note.message(in: conversation, in: session.managedObjectContext)
+            else {
+                return
+        }
+        
+        guard shouldDisplay(message: message, isActiveAccount: accountManager.selectedAccount == account) else {
+            return
+        }
+        
         if chatHeadState != .hidden {
             // TODO: logic for notification already visible
             return
         }
-        
-        guard let chatHeadView = ChatHeadView(notification: note) else {
-            return
-        }
-        
-        self.chatHeadView = chatHeadView
-        
-        // TODO: in current conversation?
+ 
+        chatHeadView = ChatHeadView(message: message, account: account)
         
         // FIXME: doesn't consider multi account yet
-        chatHeadView.onSelect = { message in
-            if let conversation = message.conversation {
-                ZClientViewController.shared().select(conversation, focusOnView: true, animated: true)
-            }
+        chatHeadView!.onSelect = { _ in
+            ZClientViewController.shared().select(conversation, focusOnView: true, animated: true)
+            self.chatHeadView?.removeFromSuperview()
         }
         
         chatHeadState = .showing
-        view.addSubview(chatHeadView)
+        view.addSubview(chatHeadView!)
         
         // position offscreen left
-        constrain(view, chatHeadView) { view, chatHeadView in
+        constrain(view, chatHeadView!) { view, chatHeadView in
             chatHeadView.top == view.top + 64 + magicFloat("container_inset_top")
             chatHeadViewLeftMarginConstraint = (chatHeadView.leading == view.leading - magicFloat("animation_container_inset"))
             chatHeadViewRightMarginConstraint = (chatHeadView.trailing <= view.trailing - magicFloat("animation_container_inset"))
         }
         
         panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(onPanChatHead(_:)))
-        chatHeadView.addGestureRecognizer(panGestureRecognizer)
+        chatHeadView!.addGestureRecognizer(panGestureRecognizer)
         
         // timed hiding
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(hideChatHeadView), object: nil)
         perform(#selector(hideChatHeadView), with: nil, afterDelay: Double(magicFloat("dismiss_delay_duration")))
         
-        chatHeadView.alpha = 0
+        chatHeadView!.alpha = 0
         revealChatHeadFromCurrentState()
     }
     
     // MARK: - Private Helpers
+    
+    private func shouldDisplay(message: ZMConversationMessage, isActiveAccount: Bool) -> Bool {
+        
+        let isIPAD = UIDevice.current.userInterfaceIdiom == .pad
+        let isLandscape = UIInterfaceOrientationIsLandscape(UIApplication.shared.statusBarOrientation)
+        
+        // conversation list is visible in landscape
+        if isActiveAccount && isIPAD && isLandscape {
+            return false;
+        }
+        
+        let clientVC = ZClientViewController.shared()!
+        
+        // if conversation list is visible and active account
+        // TODO: confirm: left view may be revealed, even if it's covered by another vc...
+        if isActiveAccount && clientVC.splitViewController.isLeftViewControllerRevealed {
+            return false
+        }
+        
+        // if current conversation contains message & is visible
+        if clientVC.currentConversation === message.conversation && clientVC.isConversationViewVisible {
+            return false
+        }
+        
+        if AppDelegate.shared().notificationWindowController?.voiceChannelController.voiceChannelIsActive ?? false {
+            return false;
+        }
+        
+        return true;
+    }
     
     fileprivate func revealChatHeadFromCurrentState() {
         

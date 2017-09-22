@@ -50,27 +50,14 @@ class ChatHeadView: UIView {
         return UIFont(magicIdentifier: "notifications.\($0)")
     }
     
-    init?(notification: UILocalNotification) {
-        
-        let isSelfAccount: (Account) -> Bool = { return $0.userIdentifier == notification.zm_selfUserUUID }
-        
-        guard
-            let accountManager = SessionManager.shared?.accountManager,
-            let account = accountManager.accounts.first(where: isSelfAccount),
-            let session = SessionManager.shared?.backgroundUserSessions[account],
-            let conversation = notification.conversation(in: session.managedObjectContext),
-            let message = notification.message(in: conversation, in: session.managedObjectContext),
-            let sender = message.sender
-            else {
-                return nil
-        }
+    init(message: ZMConversationMessage, account: Account) {
         
         self.message = message
-        self.conversationName = conversation.displayName
-        self.senderName = sender.displayName
+        self.conversationName = message.conversation?.displayName ?? ""
+        self.senderName = message.sender?.displayName ?? ""
         self.teamName = account.teamName
-        self.isActiveAccount = account == accountManager.selectedAccount
-        self.isOneToOneConversation = conversation.conversationType == .oneOnOne
+        self.isActiveAccount = account == SessionManager.shared?.accountManager.selectedAccount
+        self.isOneToOneConversation = message.conversation?.conversationType == .oneOnOne
         super.init(frame: .zero)
         setup()
     }
@@ -221,7 +208,6 @@ class ChatHeadView: UIView {
     // MARK: - Actions
     
     @objc private func didTapInAppNotification(_ gestureRecognizer: UITapGestureRecognizer) {
-        removeFromSuperview()
         if let onSelect = onSelect, gestureRecognizer.state == .recognized {
             onSelect(message)
         }
