@@ -63,8 +63,8 @@ class ChatHeadsViewController: UIViewController {
         
         if chatHeadState != .hidden {
             // hide visible chat head and try again
-            hideChatHeadFromCurrentStateWithTiming(RBBEasingFunctionEaseInExpo, duration: 0.1)
-            perform(#selector(tryToDisplayNotification(_:)), with: note, afterDelay: 0.1)
+            hideChatHeadFromCurrentStateWithTiming(RBBEasingFunctionEaseInExpo, duration: 0.3)
+            perform(#selector(tryToDisplayNotification(_:)), with: note, afterDelay: 0.3)
             return
         }
  
