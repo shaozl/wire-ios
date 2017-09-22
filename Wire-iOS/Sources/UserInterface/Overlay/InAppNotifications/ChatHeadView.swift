@@ -50,6 +50,10 @@ class ChatHeadView: UIView {
         return UIFont(magicIdentifier: "notifications.\($0)")
     }
     
+    private func color(withName name: String) -> UIColor {
+        return ColorScheme.default().color(withName: name)
+    }
+    
     init(message: ZMConversationMessage, account: Account) {
         
         self.message = message
@@ -69,10 +73,10 @@ class ChatHeadView: UIView {
     // MARK: - Setup
     
     private func setup() {
-        backgroundColor = .white
+        backgroundColor = color(withName: ColorSchemeColorChatHeadBackground)
         layer.cornerRadius = magicFloat("corner_radius")
         layer.borderWidth = 0.5
-        layer.borderColor = UIColor(white: 230/255.0, alpha: 1).cgColor
+        layer.borderColor = color(withName: ColorSchemeColorChatHeadBorder).cgColor
         
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.12
@@ -101,12 +105,12 @@ class ChatHeadView: UIView {
         }
         
         titleLabel.attributedText = titleText()
-        titleLabel.textColor = UIColor(red: 51/255.0, green: 55/255.0, blue: 58/255.0, alpha: 1)
+        titleLabel.textColor = color(withName: ColorSchemeColorChatHeadTitleText)
         titleLabel.lineBreakMode = .byTruncatingTail
         
         subtitleLabel.text = subtitleText()
         subtitleLabel.font = messageFont()
-        subtitleLabel.textColor = UIColor(white: 153/255.0, alpha: 1)
+        subtitleLabel.textColor = color(withName: ColorSchemeColorChatHeadSubtitleText)
         subtitleLabel.lineBreakMode = .byTruncatingTail
     }
     
