@@ -58,7 +58,13 @@ class ChatHeadsViewController: UIViewController {
         self.chatHeadView = chatHeadView
         
         // TODO: in current conversation?
-        // TODO: on select
+        
+        // FIXME: doesn't consider multi account yet
+        chatHeadView.onSelect = { message in
+            if let conversation = message.conversation {
+                ZClientViewController.shared().select(conversation, focusOnView: true, animated: true)
+            }
+        }
         
         chatHeadState = .showing
         view.addSubview(chatHeadView)
