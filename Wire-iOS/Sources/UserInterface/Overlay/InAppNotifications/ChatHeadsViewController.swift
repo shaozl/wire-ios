@@ -29,7 +29,7 @@ class ChatHeadsViewController: UIViewController {
     private var panGestureRecognizer: UIPanGestureRecognizer!
     fileprivate var chatHeadState: ChatHeadPresentationState = .hidden
     
-    fileprivate let magic: (String) -> CGFloat = {
+    fileprivate let magicFloat: (String) -> CGFloat = {
         return WAZUIMagic.cgFloat(forIdentifier: "notifications.\($0)")
     }
     
@@ -41,6 +41,10 @@ class ChatHeadsViewController: UIViewController {
     // MARK: - Public Interface
     
     public func tryToDisplayNotification(_ note: UILocalNotification) {
+        
+        guard delegate?.chatHeadsViewControllerShouldDisplayNotification(self) ?? false else {
+            return
+        }
         
         if chatHeadState != .hidden {
             // TODO: logic for notification already visible
@@ -61,9 +65,9 @@ class ChatHeadsViewController: UIViewController {
         
         // position offscreen left
         constrain(view, chatHeadView) { view, chatHeadView in
-            chatHeadView.top == view.top + 64 + 16
-            chatHeadViewLeftMarginConstraint = (chatHeadView.leading == view.leading - magic("animation_inset_container"))
-            chatHeadViewRightMarginConstraint = (chatHeadView.trailing <= view.trailing - magic("animation_inset_container"))
+            chatHeadView.top == view.top + 64 + magicFloat("container_inset_top")
+            chatHeadViewLeftMarginConstraint = (chatHeadView.leading == view.leading - magicFloat("animation_container_inset"))
+            chatHeadViewRightMarginConstraint = (chatHeadView.trailing <= view.trailing - magicFloat("animation_container_inset"))
         }
         
         panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(onPanChatHead(_:)))
@@ -71,7 +75,7 @@ class ChatHeadsViewController: UIViewController {
         
         // timed hiding
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(hideChatHeadView), object: nil)
-        perform(#selector(hideChatHeadView), with: nil, afterDelay: Double(magic("single_user_duration")))
+        perform(#selector(hideChatHeadView), with: nil, afterDelay: Double(magicFloat("dismiss_delay_duration")))
         
         chatHeadView.alpha = 0
         revealChatHeadFromCurrentState()
@@ -81,28 +85,20 @@ class ChatHeadsViewController: UIViewController {
     
     fileprivate func revealChatHeadFromCurrentState() {
         
-        chatHeadView?.imageToTextInset = -(magic("animation_inset_text"))
-        
-        // slide in chat head content
-        UIView.wr_animate(
-            easing: RBBEasingFunctionEaseOutExpo,
-            duration: 0.55,
-            delay: 0.05,
-            animations: {
-                self.chatHeadView?.imageToTextInset = 0
-                self.chatHeadView?.layoutIfNeeded()
-        },
-            options: [],
-            completion: { _ in self.chatHeadState = .visible }
-        )
+        view.layoutIfNeeded()
         
         // slide in chat head from screen left
-        UIView.wr_animate(easing: RBBEasingFunctionEaseOutExpo, duration: 0.35) {
-            self.chatHeadView?.alpha = 1
-            self.chatHeadViewLeftMarginConstraint?.constant = 16
-            self.chatHeadViewRightMarginConstraint?.constant = -16
-            self.view.layoutIfNeeded()
-        }
+        UIView.wr_animate(
+            easing: RBBEasingFunctionEaseOutExpo,
+            duration: 0.35,
+            animations: {
+                self.chatHeadView?.alpha = 1
+                self.chatHeadViewLeftMarginConstraint?.constant = self.magicFloat("container_inset_left")
+                self.chatHeadViewRightMarginConstraint?.constant = -(self.magicFloat("container_inset_right"))
+                self.view.layoutIfNeeded()
+        },
+            completion: { _ in self.chatHeadState = .visible }
+        )
     }
     
     private func hideChatHeadFromCurrentState() {
@@ -110,8 +106,8 @@ class ChatHeadsViewController: UIViewController {
     }
     
     private func hideChatHeadFromCurrentStateWithTiming(_ timing: RBBEasingFunction, duration: TimeInterval) {
-        chatHeadViewLeftMarginConstraint?.constant = -(magic("animation_inset_container"))
-        chatHeadViewRightMarginConstraint?.constant = -(magic("animation_inset_container"))
+        chatHeadViewLeftMarginConstraint?.constant = -(magicFloat("animation_container_inset"))
+        chatHeadViewRightMarginConstraint?.constant = -(magicFloat("animation_container_inset"))
         chatHeadState = .hiding
         
         UIView.wr_animate(
@@ -130,14 +126,13 @@ class ChatHeadsViewController: UIViewController {
     @objc private func hideChatHeadView() {
         
         if chatHeadState == .dragging {
-            perform(#selector(hideChatHeadView), with: nil, afterDelay: Double(magic("single_user_duration")))
+            perform(#selector(hideChatHeadView), with: nil, afterDelay: Double(magicFloat("dismiss_delay_duration")))
             return
         }
         
         hideChatHeadFromCurrentState()
     }
 }
-
 
 
 // MARK: - Interaction
@@ -155,11 +150,11 @@ extension ChatHeadsViewController {
         case .changed:
             // if pan left, move chathead with finger, else apply pan resistance
             let viewOffsetX = offset.x < 0 ? offset.x : (1.0 - (1.0/((offset.x * 0.15 / view.bounds.width) + 1.0))) * view.bounds.width
-            chatHeadViewLeftMarginConstraint?.constant = viewOffsetX + 16
-            chatHeadViewRightMarginConstraint?.constant = viewOffsetX - 16
+            chatHeadViewLeftMarginConstraint?.constant = viewOffsetX + magicFloat("container_inset_left")
+            chatHeadViewRightMarginConstraint?.constant = viewOffsetX - magicFloat("container_inset_right")
             
         case .ended, .failed, .cancelled:
-            guard offset.x < 0 && fabs(offset.x) > magic("gesture_threshold") else {
+            guard offset.x < 0 && fabs(offset.x) > magicFloat("gesture_threshold") else {
                 revealChatHeadFromCurrentState()
                 break
             }

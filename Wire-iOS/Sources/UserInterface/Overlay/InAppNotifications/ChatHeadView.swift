@@ -26,8 +26,6 @@ class ChatHeadView: UIView {
     private var titleLabel: UILabel!
     private var subtitleLabel: UILabel!
     private var labelContainer: UIView!
-    private var labelContainerLeftConstraint: NSLayoutConstraint!
-    private var labelContainerRightConstraint: NSLayoutConstraint!
     
     private let isActiveAccount: Bool
     private let isOneToOneConversation: Bool
@@ -39,20 +37,12 @@ class ChatHeadView: UIView {
     
     public var onSelect: ((ZMConversationMessage) -> Void)?
     
-    public var imageToTextInset: CGFloat = 0 {
-        didSet {
-            let inset = imageToTextInset
-            let tileToContentGap = cgFloat("box_tile_to_content_gap")
-            labelContainerLeftConstraint.constant = inset + tileToContentGap
-            labelContainerRightConstraint.constant = -(cgFloat("corner_radius")) + inset
-        }
-    }
-    
     override var intrinsicContentSize: CGSize {
-        return CGSize(width: UIViewNoIntrinsicMetric, height: cgFloat("corner_radius") * 2.0)
+        let height = magicFloat("image_diameter") + 2 * magicFloat("image_padding")
+        return CGSize(width: UIViewNoIntrinsicMetric, height: height)
     }
 
-    private let cgFloat: (String) -> CGFloat = {
+    private let magicFloat: (String) -> CGFloat = {
         return WAZUIMagic.cgFloat(forIdentifier: "notifications.\($0)")
     }
     
@@ -85,13 +75,20 @@ class ChatHeadView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Setup
+    
     private func setup() {
         backgroundColor = .white
-        layer.cornerRadius = cgFloat("corner_radius")
+        layer.cornerRadius = magicFloat("corner_radius")
+        createLabels()
+        createImageView()
+        createConstraints()
         
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTapInAppNotification(_:)))
         addGestureRecognizer(tap)
-        
+    }
+    
+    private func createLabels() {
         titleLabel = UILabel()
         subtitleLabel = UILabel()
         labelContainer = UIView()
@@ -101,31 +98,59 @@ class ChatHeadView: UIView {
             labelContainer.addSubview($0!)
             $0!.backgroundColor = .clear
             $0!.isUserInteractionEnabled = false
-            $0!.translatesAutoresizingMaskIntoConstraints = false
         }
         
         titleLabel.text = titleText()
-        titleLabel.font = UIFont(magicIdentifier: "notifications.title_label_font")
-        // titleLabel.textColor = UIColor(magicIdentifier: "notifications.author_text_color")
+        titleLabel.font = UIFont(magicIdentifier: "notifications.title_label_font_medium")
         titleLabel.textColor = .black
         titleLabel.lineBreakMode = .byTruncatingTail
         
         subtitleLabel.text = subtitleText()
         subtitleLabel.font = messageFont()
-        // subtitleLabel.textColor = UIColor(magicIdentifier: "notifications.text_color")
         subtitleLabel.textColor = .black
         subtitleLabel.lineBreakMode = .byTruncatingTail
-        
+    }
+    
+    private func createImageView() {
         userImageView = ContrastUserImageView(magicPrefix: "notifications")
         userImageView.userSession = ZMUserSession.shared()
         userImageView.isUserInteractionEnabled = false
         userImageView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(userImageView)
         userImageView.user = message.sender
         userImageView.accessibilityIdentifier = "ChatheadAvatarImage"
-        
-        createConstraints()
+        addSubview(userImageView)
     }
+    
+    private func createConstraints() {
+        
+        let imageDiameter = magicFloat("image_diameter")
+        let imagePadding = magicFloat("image_padding")
+        let cornerRadius = magicFloat("corner_radius")
+        
+        constrain(labelContainer, titleLabel, subtitleLabel) { container, titleLabel, subtitleLabel in
+            titleLabel.leading == container.leading
+            titleLabel.trailing == container.trailing
+            titleLabel.bottom == container.centerY
+            
+            subtitleLabel.leading == container.leading
+            subtitleLabel.top == container.centerY
+            subtitleLabel.trailing == container.trailing
+        }
+        
+        constrain(self, userImageView, labelContainer) { selfView, imageView, labelContainer in
+            imageView.height == imageDiameter
+            imageView.width == imageView.height
+            imageView.leading == selfView.leading + imagePadding
+            imageView.centerY == selfView.centerY
+            
+            labelContainer.leading == imageView.trailing + imagePadding
+            labelContainer.trailing == selfView.trailing - cornerRadius
+            labelContainer.height == selfView.height
+            labelContainer.centerY == selfView.centerY
+        }
+    }
+    
+    // MARK: - Private Helpers
     
     private func titleText() -> String {
         
@@ -171,45 +196,12 @@ class ChatHeadView: UIView {
         return font
     }
     
+    // MARK: - Actions
+    
     @objc private func didTapInAppNotification(_ gestureRecognizer: UITapGestureRecognizer) {
         removeFromSuperview()
         if let onSelect = onSelect, gestureRecognizer.state == .recognized {
             onSelect(message)
-        }
-    }
-    
-    func createConstraints() {
-
-        let tileDiameter = cgFloat("tile_diameter")
-        let padding: CGFloat = 10
-        let tileToContentGap = cgFloat("box_tile_to_content_gap")
-        let cornerRadius = cgFloat("corner_radius")
-        
-        constrain(labelContainer, titleLabel, subtitleLabel) { container, titleLabel, subtitleLabel in
-            titleLabel.leading == container.leading
-            titleLabel.top == container.top
-            titleLabel.trailing == container.trailing
-            titleLabel.bottom == container.centerY
-            
-            subtitleLabel.leading == container.leading
-            subtitleLabel.top == container.centerY
-            subtitleLabel.trailing == container.trailing
-            subtitleLabel.bottom == container.bottom
-        }
-        
-        constrain(self, userImageView, labelContainer) { selfView, imageView, labelContainer in
-            
-            imageView.height == tileDiameter
-            imageView.width == imageView.height
-            imageView.leading == selfView.leading + padding
-            imageView.centerY == selfView.centerY
-            
-            selfView.height == imageView.height + 2 * padding
-            
-            labelContainerLeftConstraint = (labelContainer.leading == imageView.trailing + imageToTextInset + tileToContentGap)
-            labelContainerRightConstraint = (labelContainer.trailing == selfView.trailing + imageToTextInset - cornerRadius)
-            labelContainer.height == selfView.height
-            labelContainer.centerY == selfView.centerY
         }
     }
 }
