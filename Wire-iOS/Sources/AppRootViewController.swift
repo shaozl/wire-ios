@@ -351,9 +351,6 @@ extension AppRootViewController : AppStateControllerDelegate {
 extension AppRootViewController : LocalMessageNotificationResponder {
     
     func processLocalMessage(_ notification: UILocalNotification, forSession session: ZMUserSession) {
-        DispatchQueue.main.async {
-            (self.overlayWindow.rootViewController as! NotificationWindowRootViewController).show(notification)
-        }
-        
+            (self.overlayWindow.rootViewController as! NotificationWindowRootViewController).show(notification)    
     }
 }
