@@ -50,7 +50,7 @@ class ChatHeadsViewController: UIViewController {
         guard
             let accountManager = SessionManager.shared?.accountManager,
             let account = accountManager.accounts.first(where: isSelfAccount),
-            let session = SessionManager.shared?.backgroundUserSessions[account],
+            let session = SessionManager.shared?.backgroundUserSessions[account.userIdentifier],
             let conversation = note.conversation(in: session.managedObjectContext),
             let message = note.message(in: conversation, in: session.managedObjectContext)
             else {
